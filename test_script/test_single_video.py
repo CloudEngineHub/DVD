@@ -154,7 +154,7 @@ def generate_depth_sliced(model, input_rgb, window_size=45, overlap=9, scale_onl
             input_video=_input_rgb_slice,
             cfg_scale=1,
             seed=0,
-            tiled=True,
+            tiled=False,
             denoise_step=model.args.denoise_step,
         )
         # Drop the padded frames
@@ -241,6 +241,7 @@ def parse_args():
     parser.add_argument('--height', type=int, default=480)
     parser.add_argument('--width', type=int, default=640)
     parser.add_argument("--overlap", type=int, default=9)
+    parser.add_argument('--grayscale', action='store_true')
     return parser.parse_args()
 
 
@@ -256,9 +257,6 @@ def main():
         input_tensor, args.height, args.width)
     print("Resized shape:", input_tensor.shape)
     print(f"input range {input_tensor.min()} - {input_tensor.max()}")
-
-    # Cap input tensor size if needed
-    input_tensor = input_tensor[:, :281]
 
     # Model Init
     accelerator = Accelerator()
@@ -277,6 +275,7 @@ def main():
     dit_state_dict = {k.replace("pipe.dit.", ""): v for k,
                       v in state_dict.items() if "pipe.dit." in k}
     model.pipe.dit.load_state_dict(dit_state_dict, strict=True)
+    model.merge_lora_layer()
     model = model.to("cuda")
 
     # Inference
@@ -293,12 +292,15 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     exp_name = datetime.now().strftime("%m-%d-%H%M")
     base_name = os.path.basename(args.input_video).split('.')[0]
-    out_prefix = os.path.join(args.output_dir, f"{base_name}_{exp_name}")
+    gray_scale = 'gray' if args.grayscale else 'color'
+    out_prefix = os.path.join(
+        args.output_dir, f"{base_name}_{exp_name}_{gray_scale}")
 
     print(f"Saving to {out_prefix}_depth_vis.mp4")
     d_min, d_max = depth.min(), depth.max()
     vis_depth = (depth - d_min) / (d_max - d_min + 1e-8)
-    save_video(vis_depth, f"{out_prefix}_depth_vis.mp4", fps=15, quality=6)
+    save_video(vis_depth, f"{out_prefix}_depth_vis.mp4",
+               fps=15, quality=6, grayscale=args.grayscale)
 
     print("Inference completed successfully!")
 

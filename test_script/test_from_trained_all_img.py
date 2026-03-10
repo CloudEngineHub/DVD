@@ -21,9 +21,6 @@ from diffsynth.util.metric import MetricTracker
 # Dataset & Model imports
 from examples.dataset.image_eval_dataset import (BaseDepthDataset, DatasetMode,
                                                  get_dataset)
-from examples.wanvideo.model_training.args import wan_parser
-from examples.wanvideo.model_training.train_with_accelerate_video import \
-    get_data
 from examples.wanvideo.model_training.WanTrainingModule import \
     WanTrainingModule
 
@@ -73,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--ckpt", type=str, required=True,
                         help="Path to checkpoint directory")
     parser.add_argument('--base_data_dir', type=str, required=True)
-    parser.add_argument('--model_config',default='ckpt/model_config.yaml')
+    parser.add_argument('--model_config', default='ckpt/model_config.yaml')
     cli_args = parser.parse_args()
 
     state_dir = cli_args.ckpt
@@ -113,6 +110,7 @@ if __name__ == "__main__":
     dit_state_dict = {k.replace("pipe.dit.", ""): v for k,
                       v in state_dict.items() if "pipe.dit." in k}
     model.pipe.dit.load_state_dict(dit_state_dict, strict=True)
+    model.merge_lora_layer()
     model = model.to(accelerator.device)
 
     # 4. Evaluation Configuration

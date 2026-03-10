@@ -182,8 +182,4 @@ def split_state_dict_with_prefix(state_dict):
 def hash_state_dict_keys(state_dict, with_shape=True):
     keys_str = convert_state_dict_keys_to_single_str(state_dict, with_shape=with_shape)
     keys_str = keys_str.encode(encoding="UTF-8")
-    return hashlib.md5(keys_str).hexdigest()    keys_str = convert_state_dict_keys_to_single_str(state_dict, with_shape=with_shape)
-    keys_str = keys_str.encode(encoding="UTF-8")
-    return hashlib.md5(keys_str).hexdigest()    keys_str = convert_state_dict_keys_to_single_str(state_dict, with_shape=with_shape)
-    keys_str = keys_str.encode(encoding="UTF-8")
-    return hashlib.md5(keys_str).hexdigest()
+    return hashlib.md5(keys_str).hexdigest()  

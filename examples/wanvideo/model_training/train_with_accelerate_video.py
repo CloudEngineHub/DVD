@@ -127,20 +127,13 @@ def launch_training_task(
     optimizer.zero_grad()
     accumulate_depth_loss = 0.0
     accumulate_grad_loss = 0.0
-    accumulate_pixel_loss = 0.0
-    accumulate_rgb_loss = 0.0
 
     acm_cnt = 0
     rank = accelerator.process_index
 
-    # print(
-    #     f"train loader list type: {[_train_loader for _train_loader in train_dataloader_list]}")
-    # print(f"{rank} Setting up iterators for training dataloaders...")
     loader_iter_list = [iter(_train_dataloader)
                         for _train_dataloader in train_dataloader_list]
-    # iter_vkitti = cycle(vkitti_train_dataloader)
     prob = args.get('prob', [1 for _ in range(len(train_dataloader_list))])
-    sum_probs = sum(prob)
     grad_loss = GradientLoss3DSeparate()
 
     # print(f"GPU get loader iter list  {len(loader_iter_list)}")
@@ -157,21 +150,12 @@ def launch_training_task(
     for epoch_id in range(num_epochs):
         for small_batch_step in tqdm(range(100_000), desc=f"Epoch {epoch_id + 1}/{num_epochs}", disable=not accelerator.is_main_process):
 
-            # pos = small_batch_step % sum_probs
-            # accelerator.wait_for_everyone()
-            # select_pos = 0
             select_pos = random.choices(
                 population=range(len(train_dataloader_list)),
                 weights=prob,
                 k=1
             )[0]
 
-            # print(f"GPU {rank} Selecting pos {select_pos}")
-            # for idx, (l, r) in enumerate(pick_ranges):
-            #     if l <= pos < r:
-            #         # accelerator.print(f"Picking {idx} dataset...")
-            #         select_pos = idx
-            #         break
             data = None
             try:
                 data = next(loader_iter_list[select_pos])
@@ -186,11 +170,9 @@ def launch_training_task(
             with accelerator.accumulate(model):
                 input_data = get_data(data, args=args)
                 res_dict = model(input_data, args=args)
-                rgb_gt = res_dict["rgb_gt"]
                 depth_gt = res_dict['depth_gt']
                 pred = res_dict['pred']
-                depth_video = (res_dict['depth_video'] + 1) / \
-                    2.0 if res_dict['depth_video'] is not None else None
+
                 # from torchvision.utils import save_image
                 pred_rgb, pred_depth = None, None
 
@@ -198,10 +180,6 @@ def launch_training_task(
                     pred_depth, pred_rgb = pred
                 else:
                     pred_depth = pred
-                # print(f"range of pred: {pred_depth.min()}-{pred_depth.max()}")
-                # print(f"range of gt: {depth_gt.min()}-{depth_gt.max()} ")
-                # print(
-                #     f"Microstep {small_batch_step} GPU {rank} pred,gt shape {pred_depth.shape}, {depth_gt.shape}")
                 loss = torch.nn.functional.mse_loss(
                     depth_gt, pred_depth)
                 accumulate_depth_loss += loss.item()
@@ -209,38 +187,12 @@ def launch_training_task(
                 if args.get('grad_loss', False):
                     _grad_loss = grad_loss(pred_depth, depth_gt)
                     _grad_t, _grad_h, _grad_w = _grad_loss
-                    # accelerator.print(
-                    #     f"Loss in t,h,w: {_grad_t,_grad_h,_grad_w}")
                     grad_co = args.get('grad_co', 1)
                     use_latent_flow = args.get('use_latent_flow', True)
                     if not use_latent_flow:
                         _grad_t = 0
-                    # print(f"Latent flow loss: {_grad_t}")
-                    # print(f"Latent sptial loss: {_grad_h} {_grad_w}")
                     loss += grad_co * (_grad_t+_grad_h+_grad_w)
                 accumulate_grad_loss += loss.item()
-
-                if depth_video is not None:
-                    gt_depth_video = input_data['disparity']
-                    gt_depth_video = gt_depth_video.to(
-                        depth_video.device).permute(0, 2, 1, 3, 4)
-                    # print(
-                    #     f"depth video, gt_depth_video shape and range {depth_video.shape, gt_depth_video.shape}, {depth_video.min()}-{depth_video.max()}, {gt_depth_video.min()}-{gt_depth_video.max()}")
-                    pixel_loss = torch.nn.functional.l1_loss(
-                        depth_video, gt_depth_video
-                    )
-                    # save_image(depth_video.squeeze(
-                    #     2), f"debug/depth_video_{global_step}.png")
-                    # save_image(gt_depth_video.squeeze(
-                    #     2), f"debug/gt_depth_video_{global_step}.png")
-                    loss += pixel_loss
-
-                accumulate_pixel_loss += loss.item()
-
-                if args.get("rgb_lambda", None):
-                    loss += torch.nn.functional.mse_loss(
-                        rgb_gt, pred_rgb) * args.rgb_lambda if pred_rgb is not None else 0.0
-                accumulate_rgb_loss += loss.item()
 
                 accelerator.backward(loss)
                 acm_cnt += 1
@@ -261,21 +213,15 @@ def launch_training_task(
                     if global_step % log_step == 0:
                         accumulate_depth_loss /= acm_cnt
                         accumulate_grad_loss /= acm_cnt
-                        accumulate_rgb_loss /= acm_cnt
-                        accumulate_pixel_loss /= acm_cnt
 
-                        accumulate_rgb_loss = accumulate_rgb_loss - accumulate_pixel_loss
-                        accumulate_pixel_loss = accumulate_pixel_loss - accumulate_grad_loss
                         accumulate_grad_loss = accumulate_grad_loss - accumulate_depth_loss
 
                         print(
-                            f"GPU {rank} step {global_step}: depth loss = {accumulate_depth_loss}, grad_loss = {accumulate_grad_loss},pixel_loss: {accumulate_pixel_loss} rgb loss: {accumulate_rgb_loss} learning rate : {scheduler.get_last_lr()[0]:.8f}"
+                            f"GPU {rank} step {global_step}: depth loss = {accumulate_depth_loss}, grad_loss = {accumulate_grad_loss}, learning rate : {scheduler.get_last_lr()[0]:.8f}"
                         )
                         # accelerator.print(torch.cuda.memory_summary())
                         accumulate_depth_loss = 0.0
                         accumulate_grad_loss = 0.0
-                        accumulate_rgb_loss = 0.0
-                        accumulate_pixel_loss = 0.0
                         acm_cnt = 0
 
                     if (global_step) % validate_step == 0:
@@ -305,18 +251,12 @@ def launch_training_task(
                         )
 
                         model.pipe.scheduler.set_timesteps(
-                            num_inference_steps=args.training_scheduler_timesteps,
                             training=True,
-                            schedule_mode=args.training_schedule_mode,
                             denoise_step=args.denoise_step,
                         )
                         model.pipe.dit.train()
                     accelerator.wait_for_everyone()
 
-        # del res_dict, gt, pred, input_data, loss
-        # torch.cuda.empty_cache()
-        # gc.collect()
-        # accelerator.wait_for_everyone()
         accelerator.end_training()
 
 

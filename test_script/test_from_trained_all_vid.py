@@ -21,7 +21,6 @@ from diffsynth.util.alignment import (align_depth_least_square_video,
 from diffsynth.util.metric import MetricTracker
 # Dataset & Model imports
 from examples.dataset.video_dataset import get_vid_eval_dataset
-from examples.wanvideo.model_training.args import wan_parser
 from examples.wanvideo.model_training.WanTrainingModule import \
     WanTrainingModule
 

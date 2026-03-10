@@ -2,7 +2,9 @@ import os
 
 import imageio
 import imageio_ffmpeg as ffmpeg
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm
 from PIL import Image
 from tqdm import tqdm
 
@@ -160,61 +162,83 @@ def save_video_ffmpeg(frames, save_path, fps):
         quality=9,
         macro_block_size=None,  # 避免补边
     )
-    # 关键：必须 send
     for frame in frames:
         writer.send(frame)
 
-    # 关键：必须 close
     writer.close()
 
-
-# def save_video(frames, save_path, fps, quality=9, ffmpeg_params=None):
-#     writer = imageio.get_writer(
-#         save_path, fps=fps, quality=quality, ffmpeg_params=ffmpeg_params
-#     )
-#     for frame in frames:
-#         frame = np.array(frame)
-#         # print(f"Frame range {frame.min()}, {frame.max()}")
-#         if frame.dtype == np.float32 or frame.dtype == np.float64:
-#             # if frame.max() > 1.0 + 1e-5 or frame.min() < -1e-5:
-#             #     frame = frame / 255.0
-#             frame = (frame * 255).clip(0, 255).astype(np.uint8)
-#             # print(f"After convert {frame.min()}, {frame.max()}")
-#         writer.append_data(frame)
-#     writer.close()
 
 def save_video(frames, save_path, fps, quality=9, ffmpeg_params=None, grayscale=True):
     writer = imageio.get_writer(
-        save_path, fps=fps, quality=quality, ffmpeg_params=ffmpeg_params
+        save_path, fps=fps, quality=quality, macro_block_size=1, ffmpeg_params=ffmpeg_params
     )
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    
-    cmap = plt.get_cmap('Spectral_r') if not grayscale else None
+    if not grayscale:
+        cmap = plt.get_cmap('Spectral_r')
+        lut = (cmap(np.linspace(0, 1, 256))[:, :3] * 255).astype(np.uint8)
 
     for frame in frames:
         frame = np.array(frame)
-        
+
         if not grayscale:
-            if frame.ndim == 3 and frame.shape[-1] >= 3:
-                frame = frame[..., 0]
-            
-            # 确保输入在 0.0 ~ 1.0 范围内
-            if frame.dtype == np.uint8:
-                frame = frame.astype(np.float32) / 255.0
-            
-            rgba_frame = cmap(frame)
-            frame = (rgba_frame[..., :3] * 255).clip(0, 255).astype(np.uint8)
-            
+            if frame.ndim == 3:
+                if frame.shape[-1] >= 3:
+                    frame = frame[..., 0]
+                elif frame.shape[-1] == 1:
+                    frame = frame[..., 0]
+
+            if frame.dtype in [np.float32, np.float64]:
+                indices = (frame * 255).clip(0, 255).astype(np.uint8)
+            else:
+                indices = frame.clip(0, 255).astype(np.uint8)
+
+            frame_out = lut[indices]
+
         else:
-            if frame.dtype == np.float32 or frame.dtype == np.float64:
-                frame = (frame * 255).clip(0, 255).astype(np.uint8)
-                
-        writer.append_data(frame)
-        
+
+            if frame.dtype in [np.float32, np.float64]:
+                frame_out = (frame * 255).clip(0, 255).astype(np.uint8)
+            else:
+                frame_out = frame.astype(np.uint8)
+
+            if frame_out.ndim == 3 and frame_out.shape[-1] == 1:
+                frame_out = frame_out[..., 0]
+
+        writer.append_data(frame_out)
+
     writer.close()
+    # writer = imageio.get_writer(
+    #     save_path, fps=fps, quality=quality, ffmpeg_params=ffmpeg_params
+    # )
+    # import matplotlib.pyplot as plt
+    # from matplotlib import cm
+
+    # cmap = plt.get_cmap('Spectral_r') if not grayscale else None
+
+    # for frame in frames:
+    #     frame = np.array(frame)
+
+    #     if not grayscale:
+    #         if frame.ndim == 3 and frame.shape[-1] >= 3:
+    #             frame = frame[..., 0]
+
+    #         if frame.dtype == np.uint8:
+    #             frame = frame.astype(np.float32) / 255.0
+
+    #         rgba_frame = cmap(frame)
+    #         frame = (rgba_frame[..., :3] * 255).clip(0, 255).astype(np.uint8)
+
+    #     else:
+    #         if frame.dtype == np.float32 or frame.dtype == np.float64:
+    #             frame = (frame * 255).clip(0, 255).astype(np.uint8)
+
+    #     writer.append_data(frame)
+
+    # writer.close()
+
 
 def save_frames(frames, save_path):
     os.makedirs(save_path, exist_ok=True)
     for i, frame in enumerate(tqdm(frames, desc="Saving images")):
+        frame.save(os.path.join(save_path, f"{i}.png"))
+        frame.save(os.path.join(save_path, f"{i}.png"))
         frame.save(os.path.join(save_path, f"{i}.png"))

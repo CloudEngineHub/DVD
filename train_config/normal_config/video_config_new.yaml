@@ -11,9 +11,6 @@ training_target: "x"
 lora_base_model: "dit"
 # lora_base_model: null
 lora_rank: 512
-zc_layer_idx: 0
-decode_depth: false
-residual_layer_idx: 0
 
 grad_loss: true
 grad_co: 0.5
@@ -23,7 +20,7 @@ use_latent_flow: true
 resume: false
 training_state_dir: "na"
 load_optimizer: true
-output_path: "/data/user/cliao127/experiments/Videpth/03-01-1e4-lora_512-bs_16-0.5-grad_0.5-x-vid-fs_[9,1,40,10]_stride_45_test_iap_val_25"
+output_path: "/hpc2hdd/home/hongfeizhang/experiments/Videpth/Debug/githubtest"
 image_state_dir: 'na'
 global_step: 0
 
