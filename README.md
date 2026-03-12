@@ -43,7 +43,10 @@ By cleanly stripping away generative stochasticity, DVD unites the semantic rich
 ---
 
 ## 📢 News
-
+- **[2026.03.13]** 📄 Paper is available on arXiv.
+- **[2026.03.12]** 🌐 [Project page](https://dvd-project.github.io/) is live.
+- **[2026.03.11]** 🤗 Pre-trained weights released on [Hugging Face](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main).
+- **[2026.03.10]** 🔥 Repository initialized and training & inference code released.
 
 
 ## 📂 Core Folders & Files Overview
