@@ -287,18 +287,19 @@ def predict_depth(model, input_tensor, orig_size, args):
 def save_results(depth, origin_fps, args):
     """Normalizes and saves the depth video to disk."""
     os.makedirs(args.output_dir, exist_ok=True)
-    exp_name = datetime.now().strftime("%m-%d-%H%M")
     base_name = os.path.basename(args.input_video).split('.')[0]
     gray_scale = 'gray' if args.grayscale else 'color'
     out_prefix = os.path.join(
-        args.output_dir, f"{base_name}_{exp_name}_{gray_scale}")
+        args.output_dir, f"{base_name}_{gray_scale}")
 
-    print(f"Saving to {out_prefix}_depth_vis.mp4")
+    output_path = f"{out_prefix}_depth_vis.mp4"
+    print(f"Saving to {output_path}")
     d_min, d_max = depth.min(), depth.max()
     vis_depth = (depth - d_min) / (d_max - d_min + 1e-8)
     
-    save_video(vis_depth, f"{out_prefix}_depth_vis.mp4",
+    save_video(vis_depth, output_path,
                fps=origin_fps, quality=6, grayscale=args.grayscale)
+    return output_path
 
 
 def parse_args():

@@ -22,3 +22,6 @@ peft==0.18.1
 matplotlib==3.10.8
 h5py==3.16.0
 deepspeed==0.18.0
+spaces==0.47.0
+gradio==5.49.0
+gradio-client==1.13.3
