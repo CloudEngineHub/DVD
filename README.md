@@ -46,6 +46,8 @@ By cleanly stripping away generative stochasticity, DVD unites the profound sema
 ---
 
 ## 📢 News
+- **[2026.06.13]** 🎉 DVD has been accepted as a **Spotlight** at the [ICML 2026 FoGen Workshop](https://fdgm-workshop.github.io/FDGM_ICML2026/)!
+  
 - **[2026.04.07]** 🔥 DVD v1.1 is out! It's now more robust to reflective surfaces and has better temporal consistency!
 ---
 
