@@ -17,6 +17,10 @@ _**[Hongfei Zhang](https://soyouthinkyoucantell.github.io/)<sup>1*</sup>, [Harol
  [![Paper](https://img.shields.io/badge/arXiv-Paper-b31b1b?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2603.12250)
  [![Model](https://img.shields.io/badge/🤗%20HuggingFace-Model%20-yellow)](https://huggingface.co/FayeHongfeiZhang/DVD/tree/main)
  [![Model](https://img.shields.io/badge/🤗%20HuggingFace-Demo%20-yellow)](https://huggingface.co/spaces/haodongli/DVD)
+ <a href='https://hyper.ai/notebooks/dvd-deterministic-video-depth-estimation-with-generative-priors'><img src='https://img.shields.io/badge/Demo-HyperAI-red'></a>
+
+
+
 <br>
 
 </div>
